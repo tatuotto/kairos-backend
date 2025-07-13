@@ -279,6 +279,25 @@
             document.addEventListener('DOMContentLoaded', setupContextButton);
             userInput.focus();
         })();
-    </script>
+    
+                // ... código existente del script ...
+            
+            // REGISTRO DEL SERVICE WORKER
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/kairos-frontend/serviceworker.js')
+                        .then(registration => {
+                            console.log('ServiceWorker registrado con éxito: ', registration.scope);
+                        })
+                        .catch(err => {
+                            console.log('Fallo en el registro del ServiceWorker: ', err);
+                        });
+                });
+            }
+            
+            document.addEventListener('DOMContentLoaded', setupContextButton);
+            userInput.focus();
+        })();
+        </script>
 </body>
 </html>
