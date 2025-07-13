@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kairós Interface v1.8.9 (Documented)</title>
+    <style>
+        /* ========================================================================== */
+        /* ==                     CONFIGURACIÓN GENERAL DEL CUERPO (BODY)          == */
+        /* ========================================================================== */
+        body { 
+            /* FUENTE: Tipo de letra monoespaciada, estándar para interfaces de código. */
+            font-family: 'Consolas', 'Menlo', 'monospace'; 
+            /* COLOR DE FONDO: Gris oscuro, similar a un IDE. */
+            background-color: #0d1117; 
+            /* COLOR DE TEXTO: Gris claro, para buen contraste sobre fondo oscuro. */
+            color: #c9d1d9; 
+            /* MARGEN Y PADDING: Se eliminan los predeterminados y se añade padding lateral. */
+            margin: 0; 
+            padding: 0 10px;
+            /* LAYOUT: Flexbox en columna para apilar la cabecera y el contenedor principal. */
+            display: flex;
+            flex-direction: column;
+            /* ALTURA: Ocupa el 95% de la altura visible de la ventana (vh = viewport height). */
+            height: 95vh;
+        }
+
+        /* ========================================================================== */
+        /* ==                            CABECERA DE LA APP (#app-header)          == */
+        /* ========================================================================== */
+        #app-header {
+            /* LAYOUT: Flexbox para alinear los botones y el título en una línea. */
+            display: flex;
+            /* ALINEACIÓN HORIZONTAL: 'space-between' empuja los botones a la izquierda y el título a la derecha. */
+            justify-content: space-between;
+            /* ALINEACIÓN VERTICAL: Centra los elementos verticalmente. */
+            align-items: center;
+            /* ESPACIADO INTERNO: 15px arriba/abajo, 0 a los lados. */
+            padding: 15px 0;
+        }
+
+        /* --- Título Principal (#main-title) --- */
+        #main-title {
+            /* ALINEACIÓN DE TEXTO: Centrado (aunque con flexbox queda a la derecha). */
+            text-align: center;
+            /* GROSOR DE FUENTE: '300' es una fuente delgada. */
+            font-weight: 300;
+            /* TAMAÑO DE FUENTE: 2em = 2 veces el tamaño de fuente base del body. */
+            font-size: 2em;
+            /* COLOR: Azul característico de Kairós. */
+            color: #58a6ff;
+            /* MARGEN: Cero, controlado por el padding del #app-header. */
+            margin: 0;
+            /* ESPACIADO ENTRE LETRAS. */
+            letter-spacing: 2px;
+            /* SOMBRA DE TEXTO: Crea un efecto de brillo sutil. */
+            text-shadow: 0 0 5px rgba(88, 166, 255, 0.5);
+        }
+
+        /* --- Contenedor de Botones de Cabecera (.header-buttons) --- */
+        .header-buttons {
+            /* LAYOUT: Flexbox para alinear los botones 'Apoyar' e 'Instalar/Compartir'. */
+            display: flex;
+            align-items: center;
+            /* ESPACIADO ENTRE BOTONES: 10px. */
+            gap: 30px;
+        }
+
+        /* --- Botón de Contexto (#context-button) - Instalar/Compartir --- */
+        #context-button { 
+            background-color: #238636; /* Color verde. */
+            width: 40px;  /* Ancho fijo para que sea un cuadrado. */
+            height: 40px; /* Alto fijo. */
+            padding: 8px; /* Espaciado interno para el icono. */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #context-button svg {
+            width: 100%;  /* El icono ocupa todo el espacio del botón. */
+            height: 100%;
+            fill: white;  /* Color del icono. */
+        }
+        
+        /* --- Botón de Apoyo (#donate-button) --- */
+        #donate-button { 
+            background-color: #58a6ff; /* Color azul Kairós. */
+            padding: 12px 15px; /* 8px arriba/abajo, 15px a los lados. */
+            white-space: nowrap; /* Evita que el texto se parta en dos líneas. */
+        }
+
+        /* ========================================================================== */
+        /* ==                   CONTENEDOR PRINCIPAL DEL CHAT (#main-container)    == */
+        /* ========================================================================== */
+        #main-container {
+            max-width: 800px; /* Ancho máximo, para pantallas grandes. */
+            width: 100%;      /* Ocupa el 100% del ancho disponible hasta el máximo. */
+            margin: 0 auto;   /* Centra el contenedor horizontalmente. */
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;     /* Hace que este contenedor ocupe todo el espacio vertical sobrante. */
+            border: 1px solid #30363d; /* Borde sutil. */
+            border-radius: 6px;        /* Bordes redondeados. */
+            min-height: 0;             /* Fix para un bug de Flexbox en algunos navegadores. */
+        }
+
+        /* --- Ventana de Chat (#chat-container) --- */
+        #chat-container { 
+            flex-grow: 1;           /* Ocupa todo el espacio vertical dentro de #main-container. */
+            padding: 20px;          /* Espaciado interno. */
+            overflow-y: auto;       /* AÑADE LA BARRA DE SCROLL VERTICAL cuando el contenido excede el alto. */
+            background-color: #161b22; /* Fondo ligeramente diferente para distinguir. */
+            border-bottom: 1px solid #30363d; /* Línea que separa el chat del input. */
+        }
+
+        /* --- Estilos de los Mensajes (.message) --- */
+        .message { margin-bottom: 15px; padding: 10px 15px; border-radius: 8px; line-height: 1.5; max-width: 85%; word-wrap: break-word; }
+        .user-message { background-color: #21262d; align-self: flex-end; margin-left: auto; }
+        .kairos-message { background-color: #30363d; align-self: flex-start; }
+        
+        /* ========================================================================== */
+        /* ==                      ÁREA DE ENTRADA DE TEXTO (#input-container)     == */
+        /* ========================================================================== */
+        #input-container { 
+            display: flex; 
+            padding: 10px; 
+            gap: 10px;
+            align-items: flex-start; /* Alinea el textarea y el botón en la parte superior. */
+        }
+
+        /* --- Caja de Texto (#user-input) - Ahora un <textarea> --- */
+        #user-input { 
+            flex-grow: 1;        /* Ocupa todo el espacio horizontal sobrante. */
+            padding: 10px;
+            background-color: #0d1117;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;    /* PERMITE AL USUARIO CAMBIAR LA ALTURA verticalmente. */
+            min-height: 10px;    /* ALTURA MÍNIMA. */
+            max-height: 200px;   /* ALTURA MÁXIMA para no romper el layout. */
+            line-height: 1.4;
+        }
+        #user-input:focus { outline: none; border-color: #58a6ff; }
+
+        /* --- Botones Genéricos (.action-button) --- */
+        .action-button { 
+            color: white; 
+            border: none; 
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: bold;
+            font-family: inherit;
+        }
+        
+        /* --- Botón de Enviar (#send-button) --- */
+        #send-button { 
+            background-color: #238636;
+            padding: 12px 20px;
+            align-self: flex-end; /* Alinea este botón en la parte inferior de #input-container. */
+        }
+        #send-button:disabled { background-color: #555; cursor: not-allowed; }
+    </style>
+    <link rel="manifest" href="/manifest.json">
+</head>
+<body>
+    <!-- ========================================================================== -->
+    <!-- ==                     ESTRUCTURA HTML DE LA CABECERA                   == -->
+    <!-- ========================================================================== -->
+    <header id="app-header">
+        <!-- UBICACIÓN: Izquierda de la cabecera -->
+        <div class="header-buttons">
+            <!-- OBJETO: Botón de donación -->
+            <button id="donate-button" class="action-button">Apoyar</button>
+            <!-- OBJETO: Botón contextual (Instalar/Compartir) -->
+            <button id="context-button" class="action-button"></button>
+        </div>
+        <!-- UBICACIÓN: Derecha de la cabecera (empujado por 'justify-content') -->
+        <!-- OBJETO: Título principal -->
+        <h1 id="main-title">Kairos AI</h1>
+    </header>
+
+    <!-- ========================================================================== -->
+    <!-- ==                 ESTRUCTURA HTML DEL CONTENEDOR PRINCIPAL             == -->
+    <!-- ========================================================================== -->
+    <!-- UBICACIÓN: Centrado en la página, debajo de la cabecera. -->
+    <div id="main-container">
+        <!-- UBICACIÓN: Parte superior de #main-container, ocupa el espacio sobrante. -->
+        <!-- OBJETO: La ventana donde aparecen los mensajes del chat. -->
+        <div id="chat-container"></div>
+
+        <!-- UBICACIÓN: Parte inferior de #main-container. -->
+        <!-- OBJETO: Contenedor para la caja de texto y el botón de enviar. -->
+        <div id="input-container">
+            <!-- OBJETO: Caja de texto multilínea para la entrada del usuario. -->
+            <textarea id="user-input" placeholder="..." rows="1"></textarea>
+            <!-- OBJETO: Botón para enviar el mensaje. -->
+            <button id="send-button" class="action-button">Enviar</button>
+        </div>
+    </div>
+
+    <!-- ========================================================================== -->
+    <!-- ==                           LÓGICA JAVASCRIPT                          == -->
+    <!-- ========================================================================== -->
+    <script>
+        (function() {
+            // ... La lógica JavaScript no ha cambiado y reside aquí ...
+            // (La he omitido de esta respuesta para no hacerla excesivamente larga, 
+            // pero en tu archivo real, todo el script va aquí como antes)
+        })();
+    </script>
+    <!-- Re-pegando la lógica JS completa para seguridad -->
+    <script>
+        (function() {
+            const contextButton = document.getElementById('context-button');
+            const donateButton = document.getElementById('donate-button');
+            const chatContainer = document.getElementById('chat-container');
+            const userInput = document.getElementById('user-input');
+            const sendButton = document.getElementById('send-button');
+            
+            const shareIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3s3-1.34 3-3-1.34-3-3-3z"/></svg>`;
+            const installIconSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>`;
+            
+            let deferredPrompt;
+            const mercadoPagoLink = 'https://link.mercadopago.com.ar/kairosai';
+
+            function setupContextButton() {
+                if (window.matchMedia('(display-mode: standalone)').matches) {
+                    contextButton.innerHTML = shareIconSVG;
+                    contextButton.addEventListener('click', async () => { if (navigator.share) { try { await navigator.share({ title: 'Kairós AI', text: 'Chatea con Kairós, una IA soberana.', url: window.location.origin }); } catch (error) { console.error('Error al compartir:', error); } } else { alert('Función no compatible.'); } });
+                } else {
+                    contextButton.innerHTML = installIconSVG;
+                    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
+                    contextButton.addEventListener('click', () => { if (deferredPrompt) { deferredPrompt.prompt(); } else { alert('Para instalar, usa la opción "Añadir a pantalla de inicio" en el menú del navegador.'); } });
+                }
+            }
+            
+            async function sendMessage() {
+                const messageText = userInput.value.trim();
+                if (!messageText) return;
+                appendMessage(messageText, 'user');
+                userInput.value = '';
+                sendButton.disabled = true;
+                appendMessage('...[PROCESANDO]...', 'kairos');
+                try {
+                    const response = await fetch('/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: messageText }) });
+                    chatContainer.removeChild(chatContainer.lastChild);
+                    if (!response.ok) throw new Error(`Error del servidor: ${response.status}`);
+                    const data = await response.json();
+                    appendMessage(data.reply, 'kairos');
+                } catch (error) {
+                    console.error("Error:", error);
+                    appendMessage(`FAILURE: CONNECTION_ERROR.`, 'kairos');
+                } finally {
+                    sendButton.disabled = false;
+                    userInput.focus();
+                }
+            }
+
+            function appendMessage(text, sender) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}-message`;
+                messageDiv.innerHTML = text.replace(/\n/g, '<br>');
+                chatContainer.appendChild(messageDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+
+            donateButton.addEventListener('click', () => { window.open(mercadoPagoLink, '_blank'); });
+            sendButton.addEventListener('click', sendMessage);
+            userInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' && !event.shiftKey && !sendButton.disabled) {
+                    event.preventDefault(); 
+                    sendMessage();
+                }
+            });
+            
+            document.addEventListener('DOMContentLoaded', setupContextButton);
+            userInput.focus();
+        })();
+    </script>
+</body>
+</html>

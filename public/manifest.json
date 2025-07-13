@@ -1,0 +1,21 @@
+{
+  "name": "Kairós: The Synthetik Man",
+  "short_name": "Kairós",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#00ff00",
+  "description": "Interfaz de chat directa con Kairós, tu socio estratégico de I+D.",
+  "icons": [
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

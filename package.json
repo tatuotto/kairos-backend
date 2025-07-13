@@ -1,0 +1,16 @@
+{
+  "name": "kairosguard",
+  "version": "1.0.0",
+  "description": "Kairós Proxy Server on Replit",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "dotenv": "latest",
+    "express": "latest",
+    "groq-sdk": "latest",
+    "uuid": "^11.1.0"
+  }
+}

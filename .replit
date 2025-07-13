@@ -1,0 +1,7 @@
+# Comando que se ejecuta al presionar el botón 'Run'
+run = "npm start"
+modules = ["nodejs-20"]
+
+[[ports]]
+localPort = 3000
+externalPort = 80
