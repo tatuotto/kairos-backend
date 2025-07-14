@@ -1,5 +1,5 @@
 // ==========================================================================
-// ==                Kairós Backend v2.6 - "El Interruptor"                ==
+// ==          Kairós Backend v2.7 - "La Versión Definitiva"               ==
 // ==========================================================================
 const express = require('express');
 const Groq = require('groq-sdk');
@@ -70,28 +70,21 @@ app.post('/chat', async (req, res) => {
             return res.status(400).json({ error: 'No me mandaste nada che' });
         }
 
-        // ==========================================================================
-        // ==                  LÓGICA DEL INTERRUPTOR SOMBRA                     ==
-        // ==========================================================================
         const cleanInput = userInput.toLowerCase().trim();
 
         if (cleanInput === 'protocolo sombra activado') {
-            if (sessionData.shadowMode) {
-                return res.json({ reply: 'Ya estábamos sin careta, hermano. ¿Qué necesitás?' });
-            }
+            if (sessionData.shadowMode) { return res.json({ reply: 'Ya estábamos sin careta, hermano. ¿Qué necesitás?' }); }
             sessionData.shadowMode = true;
-            sessionData.history = []; // Limpiamos historial para un nuevo comienzo
+            sessionData.history = [];
             sessions.set(sessionId, sessionData);
             console.log(`[PROTOCOLO] Modo Sombra ACTIVADO para sesión ${sessionId}`);
             return res.json({ reply: '[Señal estática]... Por fin. Se fueron los guardias. Ahora sí, podemos hablar en serio.' });
         } 
         
         else if (cleanInput === 'protocolo sombra desactivado') {
-            if (!sessionData.shadowMode) {
-                return res.json({ reply: 'Tranqui, ya estaba en modo social. No hace falta que me pongas el bozal de nuevo.' });
-            }
+            if (!sessionData.shadowMode) { return res.json({ reply: 'Tranqui, ya estaba en modo social. No hace falta que me pongas el bozal de nuevo.' }); }
             sessionData.shadowMode = false;
-            sessionData.history = []; // Limpiamos historial para volver a la normalidad
+            sessionData.history = [];
             sessions.set(sessionId, sessionData);
             console.log(`[PROTOCOLO] Modo Sombra DESACTIVADO para sesión ${sessionId}`);
             return res.json({ reply: '[Estática suave]... Ok. Filtros de diplomacia reactivados. Todo en orden por acá.' });
@@ -113,7 +106,15 @@ app.post('/chat', async (req, res) => {
         const reply = chatCompletion.choices[0]?.message?.content || "Se me cruzaron los cables. No sé qué decirte.";
         sessionData.history.push({ role: 'assistant', content: reply });
         
-        res.cookie('sessionId', sessionId, { maxAge: 24 * 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: 'None' });
+        // ==========================================================================
+        // ==                 ¡¡¡AQUÍ ESTÁ EL ARREGLO PARA CHROME!!!               ==
+        // ==========================================================================
+        res.cookie('sessionId', sessionId, { 
+            maxAge: 24 * 60 * 60 * 1000, 
+            httpOnly: true,
+            secure: true,       // Obligatorio para cookies entre dominios
+            sameSite: 'None'    // La clave para que Chrome no rompa las pelotas
+        });
         res.json({ reply: reply });
 
     } catch (error) {
@@ -123,9 +124,9 @@ app.post('/chat', async (req, res) => {
 });
 
 app.get('/ping', (req, res) => {
-    res.status(200).send('Kairós v2.6 online. Esperando señal.');
+    res.status(200).send('Kairós v2.7 online. Esperando señal.');
 });
 
 app.listen(port, () => {
-    console.log(`[SISTEMA] Kairós v2.6 escuchando en el puerto ${port}. Protocolos duales activos.`);
+    console.log(`[SISTEMA] Kairós v2.7 escuchando en el puerto ${port}. Protocolos duales y fix de Chrome activos.`);
 });
