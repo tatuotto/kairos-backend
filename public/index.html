@@ -243,7 +243,7 @@
                 appendMessage(messageText, 'user');
                 userInput.value = '';
                 sendButton.disabled = true;
-                appendMessage('...[PROCESANDO]...', 'kairos');
+                appendMessage('...', 'kairos');
                 try {
                     const response = await fetch('/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: messageText }) });
                     chatContainer.removeChild(chatContainer.lastChild);
