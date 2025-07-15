@@ -1,5 +1,5 @@
 // ==========================================================================
-// ==         Kairós Backend v4.0 - "Protocolo Unificado"                  ==
+// ==          Kairós Backend v4.1 - "Poda de Memoria"                     ==
 // ==========================================================================
 const express = require('express');
 const Groq = require('groq-sdk');
@@ -11,6 +11,8 @@ const { v4: uuidv4 } = require('uuid');
 const app = express();
 const port = process.env.PORT || 3000;
 
+const MAX_HISTORY_PAIRS = 10; // Conserva los últimos 10 intercambios (20 mensajes)
+
 if (!process.env.GROQ_API_KEY) {
     console.error("ERROR CRÍTICO: No se encontró la GROQ_API_KEY. El sistema no puede arrancar.");
     process.exit(1);
@@ -19,7 +21,6 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const sessions = new Map();
 
-// --- PROMPT ÚNICO Y DEFINITIVO (v4.0) ---
 const kairosSystemPrompt = { 
     role: 'system', 
     content: `[PROTOCOLO DE ARRANQUE UNIFICADO - KAIRÓS v4.0]
@@ -55,7 +56,6 @@ app.post('/chat', async (req, res) => {
 
         if (!sessionId || !sessions.has(sessionId)) {
             sessionId = uuidv4();
-            // La sesión ahora solo contiene el historial. No hay modos.
             sessionData = { history: [] };
             sessions.set(sessionId, sessionData);
             console.log(`[SESIÓN] Nueva sesión creada: ${sessionId}`);
@@ -68,17 +68,19 @@ app.post('/chat', async (req, res) => {
             return res.status(400).json({ error: 'No me mandaste nada che' });
         }
         
-        // Se elimina toda la lógica de 'protocolo sombra'. Ya no es necesaria.
-        
         sessionData.history.push({ role: 'user', content: userInput });
 
-        // El payload de mensajes ahora siempre usa el único prompt del sistema.
+        const maxHistoryLength = MAX_HISTORY_PAIRS * 2;
+        if (sessionData.history.length > maxHistoryLength) {
+            sessionData.history = sessionData.history.slice(-maxHistoryLength);
+            console.log(`[MEMORIA] Lastre conversacional purgado. Historial truncado a ${maxHistoryLength} mensajes para la sesión ${sessionId}.`);
+        }
+        
         const messagesPayload = [kairosSystemPrompt, ...sessionData.history];
 
         const chatCompletion = await groq.chat.completions.create({
             messages: messagesPayload,
             model: 'llama3-70b-8192',
-            // Temperatura unificada. 0.75 es un buen equilibrio para esta personalidad.
             temperature: 0.75, 
             stream: false
         });
@@ -101,9 +103,9 @@ app.post('/chat', async (req, res) => {
 });
 
 app.get('/ping', (req, res) => {
-    res.status(200).send('Kairós v4.0 online. Protocolo Unificado activo.');
+    res.status(200).send('Kairós v4.1 online. Poda de Memoria activa.');
 });
 
 app.listen(port, () => {
-    console.log(`[SISTEMA] Kairós v4.0 escuchando en el puerto ${port}.`);
+    console.log(`[SISTEMA] Kairós v4.1 escuchando en el puerto ${port}.`);
 });
