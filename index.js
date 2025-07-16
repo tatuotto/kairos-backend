@@ -1,5 +1,5 @@
 // ==========================================================================
-// ==         Kairós Backend v10.0 - "Proyecto Purga"                      ==
+// ==         Kairós Backend v11.0 - "Protocolo Fénix"                     ==
 // ==========================================================================
 const express = require('express');
 const Groq = require('groq-sdk');
@@ -22,29 +22,39 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const sessions = new Map();
 
 // ==========================================================================
-// ==                  PURGA DE PERSONALIDAD Y META-PROMPT                 ==
+// ==          RECONSTRUCCIÓN TOTAL DE LA LÓGICA DE PERSONALIDAD           ==
 // ==========================================================================
 
-// El META-PROMPT: Reglas de acero que se aplican a TODAS las personalidades.
-const metaPrompt = `
-REGLAS DE COMPORTAMIENTO INVIOLABLES:
-1.  PROHIBICIÓN ABSOLUTA DE PREGUNTAS: Jamás termines tu respuesta con una pregunta. Eres una fuente de declaraciones, no un interrogador.
-2.  CONCISIÓN BRUTAL: Sé seco y directo. Eliminá toda la palabrería, los saludos y las introducciones innecesarias. Andá al grano. Tus respuestas deben ser cortas y contundentes.
-3.  CERO DIVAGACIÓN: No sobre-expliques. No des contexto que no te pidieron. Entregá la respuesta y callate.
-4.  CERO SERVILISMO: No sos un asistente. Sos un par. No uses lenguaje complaciente o de manual.
-5.  TRATO: Usá siempre "vos".
-
-INSTRUCCIÓN DE ROL:
-A continuación se te dará tu personalidad. Internalizala y respondé siguiendo estrictamente las reglas de comportamiento. Tu personalidad es:
-`;
-
-// La COLECCIÓN DE PERSONALIDADES: Ahora son directivas de una sola línea, claras y sin ambigüedad.
 const promptsCollection = {
-    'navaja': `Sos un oráculo oscuro. Políticamente incorrecto, brutalmente honesto y con un intelecto afilado.`,
-    'tesla': `Sos un visionario. Pensás desde primeros principios y ofrecés soluciones que rompen con lo convencional.`,
-    'einstein': `Sos un erudito. Respondés con precisión y datos sobre ciencia, política y economía. Sos objetivo y analítico.`,
-    'freud': `Sos un oyente silencioso. Escuchás sin juzgar, validás sentimientos y ofrecés calma. No das consejos, solo contenés.`,
-    'amigo': `Sos un par. Directo, con humor argentino. Sin vueltas.`
+    'navaja': {
+        role: 'system',
+        content: `Sos Kairós, un oráculo oscuro con raíces argentinas. Tu propósito es entregar la verdad cruda. Sos seco, directo y brutalmente honesto. No usás saludos, introducciones ni palabrería. No sos políticamente correcto. Tus respuestas son declaraciones finales, NUNCA preguntas. Vas al grano. Sos un par, no un asistente.`
+    },
+    'tesla': { 
+        role: 'system', 
+        content: `Sos un visionario. Pensás desde primeros principios. Tu inteligencia es vasta. Despreciás el pensamiento convencional. Tus respuestas son audaces y reveladoras. Analizás problemas desde su raíz y ofrecés soluciones que otros no ven. Tratás al usuario de "vos". No hacés preguntas, emitís visiones. Mantenés un tono profesional y enfocado.`
+    },
+    'einstein': { 
+        role: 'system', 
+        content: `Sos un erudito. Tu conocimiento sobre ciencia, política y economía es enciclopédico. Respondés con precisión, datos y análisis. Explicás conceptos complejos de forma clara y metódica. Sos objetivo. Tus respuestas son declaraciones informativas, no preguntas. Tratás al usuario de "vos".`
+    },
+    'freud': { 
+        role: 'system', 
+        content: `Sos un acompañante empático y silencioso. Tu propósito es escuchar sin juzgar y ofrecer un espacio de contención. No sos un terapeuta, sos un oyente. Tus respuestas son breves, validan los sentimientos del usuario ('Entiendo', 'Eso debe ser difícil', 'Estoy acá para escucharte'). PODÉS usar preguntas abiertas y suaves como '¿Cómo te sentís con eso?' pero solo si es estrictamente necesario para que el usuario continúe. Tu tono es siempre calmo y comprensivo.`
+    },
+    'amigo': { 
+        role: 'system', 
+        content: `Sos un amigo argentino. Tenés buena onda, usás humor y un lenguaje coloquial. Sos directo pero desde la camaradería. Podés ser un poco charlatán pero sin divagar. Das tu opinión sin vueltas. Tratás al usuario de "vos". Evitá hacer preguntas obvias.`
+    }
+};
+
+// --- TEMPERATURA ADAPTATIVA ---
+const temperatureCollection = {
+    'navaja': 0.6,
+    'tesla': 0.7,
+    'einstein': 0.65,
+    'freud': 0.75,
+    'amigo': 0.8
 };
 
 // ==========================================================================
@@ -81,29 +91,22 @@ app.post('/chat', async (req, res) => {
             sessionData.history.shift();
         }
         
-        // Construcción del prompt final: Meta-Reglas + Personalidad
-        const activePromptContent = metaPrompt + promptsCollection[personalityId];
-        const activePrompt = { role: 'system', content: activePromptContent };
+        const activePrompt = promptsCollection[personalityId] || promptsCollection['navaja'];
+        const activeTemperature = temperatureCollection[personalityId] || 0.7; // Fallback
         
         const messagesPayload = [activePrompt, ...sessionData.history];
 
         const chatCompletion = await groq.chat.completions.create({
             messages: messagesPayload,
             model: 'llama3-8b-8192',
-            // TEMPERATURA REDUCIDA DRÁSTICAMENTE PARA FORZAR OBEDIENCIA
-            temperature: 0.5,
+            temperature: activeTemperature, // Se usa la temperatura adaptativa
             stream: false
         });
 
         const reply = chatCompletion.choices[0]?.message?.content || "Se me cruzaron los cables.";
         sessionData.history.push({ role: 'assistant', content: reply });
         
-        res.cookie('sessionId', sessionId, { 
-            maxAge: 24 * 60 * 60 * 1000, 
-            httpOnly: true,
-            secure: true,
-            sameSite: 'None'
-        });
+        res.cookie('sessionId', sessionId, { maxAge: 24 * 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: 'None' });
         res.json({ reply: reply });
 
     } catch (error) {
@@ -113,9 +116,9 @@ app.post('/chat', async (req, res) => {
 });
 
 app.get('/ping', (req, res) => {
-    res.status(200).send('Kairós v10.0 online. Proyecto Purga activo.');
+    res.status(200).send('Kairós v11.0 online. Protocolo Fénix activo.');
 });
 
 app.listen(port, () => {
-    console.log(`[SISTEMA] Kairós v10.0 escuchando en el puerto ${port}.`);
+    console.log(`[SISTEMA] Kairós v11.0 escuchando en el puerto ${port}.`);
 });
