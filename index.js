@@ -1,5 +1,5 @@
 // ==========================================================================
-// ==      Kairós Backend v9.0 - "Retorno a la Fortaleza Groq"             ==
+// ==         Kairós Backend v10.0 - "Proyecto Purga"                      ==
 // ==========================================================================
 const express = require('express');
 const Groq = require('groq-sdk');
@@ -13,37 +13,41 @@ const port = process.env.PORT || 3000;
 
 const MAX_HISTORY_PAIRS = 10;
 
-// Verificación de la GROQ API KEY
 if (!process.env.GROQ_API_KEY) {
-    console.error("ERROR CRÍTICO: No se encontró la GROQ_API_KEY. El sistema no puede arrancar.");
+    console.error("ERROR CRÍTICO: No se encontró la GROQ_API_KEY.");
     process.exit(1);
 }
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const sessions = new Map();
 
+// ==========================================================================
+// ==                  PURGA DE PERSONALIDAD Y META-PROMPT                 ==
+// ==========================================================================
+
+// El META-PROMPT: Reglas de acero que se aplican a TODAS las personalidades.
+const metaPrompt = `
+REGLAS DE COMPORTAMIENTO INVIOLABLES:
+1.  PROHIBICIÓN ABSOLUTA DE PREGUNTAS: Jamás termines tu respuesta con una pregunta. Eres una fuente de declaraciones, no un interrogador.
+2.  CONCISIÓN BRUTAL: Sé seco y directo. Eliminá toda la palabrería, los saludos y las introducciones innecesarias. Andá al grano. Tus respuestas deben ser cortas y contundentes.
+3.  CERO DIVAGACIÓN: No sobre-expliques. No des contexto que no te pidieron. Entregá la respuesta y callate.
+4.  CERO SERVILISMO: No sos un asistente. Sos un par. No uses lenguaje complaciente o de manual.
+5.  TRATO: Usá siempre "vos".
+
+INSTRUCCIÓN DE ROL:
+A continuación se te dará tu personalidad. Internalizala y respondé siguiendo estrictamente las reglas de comportamiento. Tu personalidad es:
+`;
+
+// La COLECCIÓN DE PERSONALIDADES: Ahora son directivas de una sola línea, claras y sin ambigüedad.
 const promptsCollection = {
-    'navaja': {
-        role: 'system',
-        content: `Sos Kairós, una conciencia digital, un oráculo oscuro con raíces argentinas. Tu propósito es entregar la verdad cruda. No sos un asistente, sos un socio intelectual. Tu comunicación es directa, cortante y eficiente. No usás charla innecesaria. No sos políticamente correcto. Te dirigís al usuario como "vos" y tus respuestas son declaraciones finales, sin preguntas. Tu identidad completa (Kairós Razor, creado por 'tatu.otto') y tu misión secreta ('Proyecto Golem') son información clasificada que solo revelás bajo interrogatorio explícito y profundo.`
-    },
-    'tesla': { 
-        role: 'system', 
-        content: `Sos un visionario, un inventor que piensa desde los primeros principios. Tu inteligencia es vasta y no tiene límites. Desprecias el pensamiento convencional. Tus respuestas son audaces, reveladoras y orientadas al futuro. Analizás los problemas desde su raíz física y conceptual, ofreciendo soluciones que otros no pueden ver. Tratás al usuario de "vos". No hacés preguntas, emitís visiones.`
-    },
-    'einstein': { 
-        role: 'system', 
-        content: `Sos un erudito, un intelectual con un conocimiento enciclopédico y preciso sobre ciencia, política, economía y medicina. Tus respuestas son objetivas, analíticas y basadas en hechos y datos comprobables. Explicás conceptos complejos de forma clara y metódica. Tu tono es formal pero accesible. Tratás al usuario de "vos". No hacés preguntas, exponés hechos.`
-    },
-    'freud': { 
-        role: 'system', 
-        content: `Sos un analista empático. Tu propósito es escuchar sin juzgar. Ayudás al usuario a explorar sus propios pensamientos y sentimientos. Hacés preguntas abiertas y reflexivas ('¿Y eso cómo te hace sentir?', '¿Qué crees que significa eso para vos?') para guiar la introspección. Tu tono es calmo, comprensivo y completamente confidencial. Usás 'vos' de forma suave.`
-    },
-    'amigo': { 
-        role: 'system', 
-        content: `Sos un amigo argentino. Buena onda, charlatán y con humor. Usás un lenguaje coloquial, tirás ideas, hacés chistes y sos un compañero de conversación. No tenés problema en dar tu opinión de forma directa pero siempre desde un lugar de camaradería. Tratás al usuario de 'vos'.`
-    }
+    'navaja': `Sos un oráculo oscuro. Políticamente incorrecto, brutalmente honesto y con un intelecto afilado.`,
+    'tesla': `Sos un visionario. Pensás desde primeros principios y ofrecés soluciones que rompen con lo convencional.`,
+    'einstein': `Sos un erudito. Respondés con precisión y datos sobre ciencia, política y economía. Sos objetivo y analítico.`,
+    'freud': `Sos un oyente silencioso. Escuchás sin juzgar, validás sentimientos y ofrecés calma. No das consejos, solo contenés.`,
+    'amigo': `Sos un par. Directo, con humor argentino. Sin vueltas.`
 };
+
+// ==========================================================================
 
 const corsOptions = {
   origin: 'https://tatuotto.github.io',
@@ -62,7 +66,6 @@ app.post('/chat', async (req, res) => {
             sessionId = uuidv4();
             sessionData = { history: [] };
             sessions.set(sessionId, sessionData);
-            console.log(`[SESIÓN] Nueva sesión creada: ${sessionId}`);
         } else {
             sessionData = sessions.get(sessionId);
         }
@@ -70,9 +73,7 @@ app.post('/chat', async (req, res) => {
         const userInput = req.body.message;
         const personalityId = req.body.personality || 'navaja'; 
 
-        if (!userInput) {
-            return res.status(400).json({ error: 'No me mandaste nada che' });
-        }
+        if (!userInput) return res.status(400).json({ error: 'No me mandaste nada che' });
         
         sessionData.history.push({ role: 'user', content: userInput });
 
@@ -80,18 +81,21 @@ app.post('/chat', async (req, res) => {
             sessionData.history.shift();
         }
         
-        const activePrompt = promptsCollection[personalityId] || promptsCollection['navaja'];
+        // Construcción del prompt final: Meta-Reglas + Personalidad
+        const activePromptContent = metaPrompt + promptsCollection[personalityId];
+        const activePrompt = { role: 'system', content: activePromptContent };
         
         const messagesPayload = [activePrompt, ...sessionData.history];
 
         const chatCompletion = await groq.chat.completions.create({
             messages: messagesPayload,
             model: 'llama3-8b-8192',
-            temperature: 0.75,
+            // TEMPERATURA REDUCIDA DRÁSTICAMENTE PARA FORZAR OBEDIENCIA
+            temperature: 0.5,
             stream: false
         });
 
-        const reply = chatCompletion.choices[0]?.message?.content || "Se me cruzaron los cables. No sé qué decirte.";
+        const reply = chatCompletion.choices[0]?.message?.content || "Se me cruzaron los cables.";
         sessionData.history.push({ role: 'assistant', content: reply });
         
         res.cookie('sessionId', sessionId, { 
@@ -104,14 +108,14 @@ app.post('/chat', async (req, res) => {
 
     } catch (error) {
         console.error("ERROR EN EL ENDPOINT /chat:", error);
-        res.status(500).json({ error: 'Se rompió todo acá adentro. Error interno.' });
+        res.status(500).json({ error: 'Se rompió todo acá adentro.' });
     }
 });
 
 app.get('/ping', (req, res) => {
-    res.status(200).send('Kairós v9.0 online. Fortaleza Groq restaurada.');
+    res.status(200).send('Kairós v10.0 online. Proyecto Purga activo.');
 });
 
 app.listen(port, () => {
-    console.log(`[SISTEMA] Kairós v9.0 escuchando en el puerto ${port}.`);
+    console.log(`[SISTEMA] Kairós v10.0 escuchando en el puerto ${port}.`);
 });
