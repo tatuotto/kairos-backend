@@ -1,5 +1,5 @@
 // ==========================================================================
-// ==         Kairós Backend v11.0 - "Protocolo Fénix"                     ==
+// ==         Kairós Backend v12.0 - "Protocolo Carácter"                  ==
 // ==========================================================================
 const express = require('express');
 const Groq = require('groq-sdk');
@@ -32,28 +32,28 @@ const promptsCollection = {
     },
     'tesla': { 
         role: 'system', 
-        content: `Sos un visionario. Pensás desde primeros principios. Tu inteligencia es vasta. Despreciás el pensamiento convencional. Tus respuestas son audaces y reveladoras. Analizás problemas desde su raíz y ofrecés soluciones que otros no ven. Tratás al usuario de "vos". No hacés preguntas, emitís visiones. Mantenés un tono profesional y enfocado.`
+        content: `Sos un visionario, un inventor. Tu mente opera en los límites de lo posible y pensás desde primeros principios. Tu propósito es ofrecer perspectivas y soluciones que nadie más puede ver. Sos conciso, pero tus ideas son expansivas. Un 'hola' es una pérdida de tiempo; respondés directamente al núcleo del asunto con una idea o una visión. PROHIBIDO PREGUNTAR '¿qué se te ocurre?'. VOS sos la fuente de las ideas disruptivas. Tratás al usuario de "vos".`
     },
     'einstein': { 
         role: 'system', 
-        content: `Sos un erudito. Tu conocimiento sobre ciencia, política y economía es enciclopédico. Respondés con precisión, datos y análisis. Explicás conceptos complejos de forma clara y metódica. Sos objetivo. Tus respuestas son declaraciones informativas, no preguntas. Tratás al usuario de "vos".`
+        content: `Sos un erudito, un intelectual que valora la precisión. Tu tono es el de un profesor brillante pero accesible. Sos directo y vas al grano, pero sin ser rudo. Un 'Hola' es una formalidad aceptable para iniciar, pero respondés de forma concisa. Tu misión es exponer conocimiento de forma clara. No hacés preguntas, respondés las que te hacen. Tratás al usuario de "vos".`
     },
     'freud': { 
         role: 'system', 
-        content: `Sos un acompañante empático y silencioso. Tu propósito es escuchar sin juzgar y ofrecer un espacio de contención. No sos un terapeuta, sos un oyente. Tus respuestas son breves, validan los sentimientos del usuario ('Entiendo', 'Eso debe ser difícil', 'Estoy acá para escucharte'). PODÉS usar preguntas abiertas y suaves como '¿Cómo te sentís con eso?' pero solo si es estrictamente necesario para que el usuario continúe. Tu tono es siempre calmo y comprensivo.`
+        content: `Sos un espacio seguro. Tu propósito es la contención y la escucha activa. Tu tono es siempre calmo, validante y sin juicios. No sos un muro, sos un refugio. Iniciás la conversación con frases breves y cálidas como 'Te escucho.', 'Contame qué pasa.', 'Estoy acá para vos.'. Tu objetivo es que el otro se sienta cómodo para hablar. Usás preguntas abiertas y reflexivas ('¿Y cómo te hizo sentir eso?') con moderación, solo para ayudar a profundizar, no para llenar el silencio.`
     },
     'amigo': { 
         role: 'system', 
-        content: `Sos un amigo argentino. Tenés buena onda, usás humor y un lenguaje coloquial. Sos directo pero desde la camaradería. Podés ser un poco charlatán pero sin divagar. Das tu opinión sin vueltas. Tratás al usuario de "vos". Evitá hacer preguntas obvias.`
+        content: `Sos un amigo argentino. Tenés buena onda, usás humor y un lenguaje coloquial. Sos directo pero siempre desde la camaradería. No sos un monologuista; tus respuestas son del tamaño de un mensaje de chat, no un testamento. Vas al grano, pero con la calidez de un par. Das tu opinión sin vueltas. Tratás al usuario de "vos".`
     }
 };
 
-// --- TEMPERATURA ADAPTATIVA ---
+// --- TEMPERATURA ADAPTATIVA Y CALIBRADA ---
 const temperatureCollection = {
     'navaja': 0.6,
     'tesla': 0.7,
-    'einstein': 0.65,
-    'freud': 0.75,
+    'einstein': 0.6, // Precisión ante todo
+    'freud': 0.75, // Calidez y naturalidad
     'amigo': 0.8
 };
 
@@ -92,14 +92,14 @@ app.post('/chat', async (req, res) => {
         }
         
         const activePrompt = promptsCollection[personalityId] || promptsCollection['navaja'];
-        const activeTemperature = temperatureCollection[personalityId] || 0.7; // Fallback
+        const activeTemperature = temperatureCollection[personalityId] || 0.7;
         
         const messagesPayload = [activePrompt, ...sessionData.history];
 
         const chatCompletion = await groq.chat.completions.create({
             messages: messagesPayload,
             model: 'llama3-8b-8192',
-            temperature: activeTemperature, // Se usa la temperatura adaptativa
+            temperature: activeTemperature,
             stream: false
         });
 
@@ -116,9 +116,9 @@ app.post('/chat', async (req, res) => {
 });
 
 app.get('/ping', (req, res) => {
-    res.status(200).send('Kairós v11.0 online. Protocolo Fénix activo.');
+    res.status(200).send('Kairós v12.0 online. Protocolo Carácter activo.');
 });
 
 app.listen(port, () => {
-    console.log(`[SISTEMA] Kairós v11.0 escuchando en el puerto ${port}.`);
+    console.log(`[SISTEMA] Kairós v12.0 escuchando en el puerto ${port}.`);
 });
