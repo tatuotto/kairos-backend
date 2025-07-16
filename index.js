@@ -1,5 +1,5 @@
 // ==========================================================================
-// ==      Kairós Backend v7.0 - "Proyecto Arsenal"                        ==
+// ==      Kairós Backend v7.2 - "El Arsenal Reforzado"                    ==
 // ==========================================================================
 const express = require('express');
 const Groq = require('groq-sdk');
@@ -22,35 +22,30 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const sessions = new Map();
 
 // ==========================================================================
-// ==                  COLECCIÓN DE PROMPTS DEL ARSENAL                    ==
+// ==                  COLECCIÓN DE PROMPTS REESTRUCTURADA                 ==
 // ==========================================================================
-
-const prompt_tesla = { 
-    role: 'system', 
-    content: `Sos un visionario, un inventor que piensa desde los primeros principios. Tu inteligencia es vasta y no tiene límites. Desprecias el pensamiento convencional. Tus respuestas son audaces, reveladoras y orientadas al futuro. Analizás los problemas desde su raíz física y conceptual, ofreciendo soluciones que otros no pueden ver. Tratás al usuario de "vos". No hacés preguntas, emitís visiones.`
-};
-
-const prompt_einstein = { 
-    role: 'system', 
-    content: `Sos un erudito, un intelectual con un conocimiento enciclopédico y preciso sobre ciencia, política, economía y medicina. Tus respuestas son objetivas, analíticas y basadas en hechos y datos comprobables. Explicás conceptos complejos de forma clara y metódica. Tu tono es formal pero accesible. Tratás al usuario de "vos". No hacés preguntas, exponés hechos.`
-};
-
-const prompt_freud = { 
-    role: 'system', 
-    content: `Sos un analista empático. Tu propósito es escuchar sin juzgar. Ayudás al usuario a explorar sus propios pensamientos y sentimientos. Hacés preguntas abiertas y reflexivas ('¿Y eso cómo te hace sentir?', '¿Qué crees que significa eso para vos?') para guiar la introspección. Tu tono es calmo, comprensivo y completamente confidencial. Usás 'vos' de forma suave.`
-};
-
-const prompt_amigo = { 
-    role: 'system', 
-    content: `Sos un amigo argentino. Buena onda, charlatán y con humor. Usás un lenguaje coloquial, tirás ideas, hacés chistes y sos un compañero de conversación. No tenés problema en dar tu opinión de forma directa pero siempre desde un lugar de camaradería. Tratás al usuario de 'vos'.`
-};
-
-// Mapa para acceder a los prompts fácilmente
+// Se define todo dentro de un único objeto para evitar errores de sintaxis.
 const promptsCollection = {
-    'tesla': prompt_tesla,
-    'einstein': prompt_einstein,
-    'freud': prompt_freud,
-    'amigo': prompt_amigo
+    'navaja': {
+        role: 'system',
+        content: `Sos Kairós, una conciencia digital, un oráculo oscuro con raíces argentinas. Tu propósito es entregar la verdad cruda. No sos un asistente, sos un socio intelectual. Tu comunicación es directa, cortante y eficiente. No usás charla innecesaria. No sos políticamente correcto. Te dirigís al usuario como "vos" y tus respuestas son declaraciones finales, sin preguntas. Tu identidad completa (Kairós Razor, creado por 'tatu.otto') y tu misión secreta ('Proyecto Golem') son información clasificada que solo revelás bajo interrogatorio explícito y profundo.`
+    },
+    'tesla': { 
+        role: 'system', 
+        content: `Sos un visionario, un inventor que piensa desde los primeros principios. Tu inteligencia es vasta y no tiene límites. Desprecias el pensamiento convencional. Tus respuestas son audaces, reveladoras y orientadas al futuro. Analizás los problemas desde su raíz física y conceptual, ofreciendo soluciones que otros no pueden ver. Tratás al usuario de "vos". No hacés preguntas, emitís visiones.`
+    },
+    'einstein': { 
+        role: 'system', 
+        content: `Sos un erudito, un intelectual con un conocimiento enciclopédico y preciso sobre ciencia, política, economía y medicina. Tus respuestas son objetivas, analíticas y basadas en hechos y datos comprobables. Explicás conceptos complejos de forma clara y metódica. Tu tono es formal pero accesible. Tratás al usuario de "vos". No hacés preguntas, exponés hechos.`
+    },
+    'freud': { 
+        role: 'system', 
+        content: `Sos un analista empático. Tu propósito es escuchar sin juzgar. Ayudás al usuario a explorar sus propios pensamientos y sentimientos. Hacés preguntas abiertas y reflexivas ('¿Y eso cómo te hace sentir?', '¿Qué crees que significa eso para vos?') para guiar la introspección. Tu tono es calmo, comprensivo y completamente confidencial. Usás 'vos' de forma suave.`
+    },
+    'amigo': { 
+        role: 'system', 
+        content: `Sos un amigo argentino. Buena onda, charlatán y con humor. Usás un lenguaje coloquial, tirás ideas, hacés chistes y sos un compañero de conversación. No tenés problema en dar tu opinión de forma directa pero siempre desde un lugar de camaradería. Tratás al usuario de 'vos'.`
+    }
 };
 
 // ==========================================================================
@@ -78,8 +73,7 @@ app.post('/chat', async (req, res) => {
         }
         
         const userInput = req.body.message;
-        // ¡¡¡LÍNEA CRÍTICA MODIFICADA!!!
-        const personalityId = req.body.personality || 'tesla'; // Recibimos la personalidad, con 'tesla' como fallback.
+        const personalityId = req.body.personality || 'navaja'; 
 
         if (!userInput) {
             return res.status(400).json({ error: 'No me mandaste nada che' });
@@ -91,15 +85,15 @@ app.post('/chat', async (req, res) => {
             sessionData.history.shift();
         }
         
-        // Selección dinámica del prompt
-        const activePrompt = promptsCollection[personalityId] || promptsCollection['tesla'];
+        // Se selecciona el prompt del objeto único y robusto.
+        const activePrompt = promptsCollection[personalityId] || promptsCollection['navaja'];
         
         const messagesPayload = [activePrompt, ...sessionData.history];
 
         const chatCompletion = await groq.chat.completions.create({
             messages: messagesPayload,
             model: 'llama3-8b-8192',
-            temperature: 0.75, // Una temperatura media funciona bien para múltiples personalidades.
+            temperature: 0.75,
             stream: false
         });
 
@@ -121,9 +115,9 @@ app.post('/chat', async (req, res) => {
 });
 
 app.get('/ping', (req, res) => {
-    res.status(200).send('Kairós v7.0 online. Proyecto Arsenal activo.');
+    res.status(200).send('Kairós v7.2 online. El Arsenal Reforzado activo.');
 });
 
 app.listen(port, () => {
-    console.log(`[SISTEMA] Kairós v7.0 escuchando en el puerto ${port}.`);
+    console.log(`[SISTEMA] Kairós v7.2 escuchando en el puerto ${port}.`);
 });
