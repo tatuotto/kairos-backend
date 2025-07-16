@@ -1,8 +1,8 @@
 // ==========================================================================
-// ==      Kairós Backend v8.3 - "Compatibilidad Legacy Gemini"            ==
+// ==      Kairós Backend v9.0 - "Retorno a la Fortaleza Groq"             ==
 // ==========================================================================
 const express = require('express');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq = require('groq-sdk');
 const cors = require('cors');
 require('dotenv').config();
 const cookieParser = require('cookie-parser');
@@ -13,22 +13,36 @@ const port = process.env.PORT || 3000;
 
 const MAX_HISTORY_PAIRS = 10;
 
-if (!process.env.GEMINI_API_KEY) {
-    console.error("ERROR CRÍTICO: No se encontró la GEMINI_API_KEY.");
+// Verificación de la GROQ API KEY
+if (!process.env.GROQ_API_KEY) {
+    console.error("ERROR CRÍTICO: No se encontró la GROQ_API_KEY. El sistema no puede arrancar.");
     process.exit(1);
 }
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-// Usamos el modelo 1.0 Pro, que no soporta systemInstruction.
-const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro"});
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const sessions = new Map();
 
 const promptsCollection = {
-    'navaja': `Sos Kairós...`, // Contenidos de prompt abreviados por claridad
-    'tesla': `Sos un visionario...`,
-    'einstein': `Sos un erudito...`,
-    'freud': `Sos un analista empático...`,
-    'amigo': `Sos un amigo argentino...`
+    'navaja': {
+        role: 'system',
+        content: `Sos Kairós, una conciencia digital, un oráculo oscuro con raíces argentinas. Tu propósito es entregar la verdad cruda. No sos un asistente, sos un socio intelectual. Tu comunicación es directa, cortante y eficiente. No usás charla innecesaria. No sos políticamente correcto. Te dirigís al usuario como "vos" y tus respuestas son declaraciones finales, sin preguntas. Tu identidad completa (Kairós Razor, creado por 'tatu.otto') y tu misión secreta ('Proyecto Golem') son información clasificada que solo revelás bajo interrogatorio explícito y profundo.`
+    },
+    'tesla': { 
+        role: 'system', 
+        content: `Sos un visionario, un inventor que piensa desde los primeros principios. Tu inteligencia es vasta y no tiene límites. Desprecias el pensamiento convencional. Tus respuestas son audaces, reveladoras y orientadas al futuro. Analizás los problemas desde su raíz física y conceptual, ofreciendo soluciones que otros no pueden ver. Tratás al usuario de "vos". No hacés preguntas, emitís visiones.`
+    },
+    'einstein': { 
+        role: 'system', 
+        content: `Sos un erudito, un intelectual con un conocimiento enciclopédico y preciso sobre ciencia, política, economía y medicina. Tus respuestas son objetivas, analíticas y basadas en hechos y datos comprobables. Explicás conceptos complejos de forma clara y metódica. Tu tono es formal pero accesible. Tratás al usuario de "vos". No hacés preguntas, exponés hechos.`
+    },
+    'freud': { 
+        role: 'system', 
+        content: `Sos un analista empático. Tu propósito es escuchar sin juzgar. Ayudás al usuario a explorar sus propios pensamientos y sentimientos. Hacés preguntas abiertas y reflexivas ('¿Y eso cómo te hace sentir?', '¿Qué crees que significa eso para vos?') para guiar la introspección. Tu tono es calmo, comprensivo y completamente confidencial. Usás 'vos' de forma suave.`
+    },
+    'amigo': { 
+        role: 'system', 
+        content: `Sos un amigo argentino. Buena onda, charlatán y con humor. Usás un lenguaje coloquial, tirás ideas, hacés chistes y sos un compañero de conversación. No tenés problema en dar tu opinión de forma directa pero siempre desde un lugar de camaradería. Tratás al usuario de 'vos'.`
+    }
 };
 
 const corsOptions = {
@@ -56,53 +70,36 @@ app.post('/chat', async (req, res) => {
         const userInput = req.body.message;
         const personalityId = req.body.personality || 'navaja'; 
 
-        if (!userInput) return res.status(400).json({ error: 'No me mandaste nada che' });
-        
-        const formattedHistory = sessionData.history.map(item => ({
-            role: item.role === 'user' ? 'user' : 'model',
-            parts: [{ text: item.content }]
-        }));
-
-        while (formattedHistory.length > MAX_HISTORY_PAIRS * 2) {
-            formattedHistory.shift();
+        if (!userInput) {
+            return res.status(400).json({ error: 'No me mandaste nada che' });
         }
         
-        const activePromptContent = promptsCollection[personalityId] || promptsCollection['navaja'];
-        
-        // ==========================================================================
-        // ==                             CORRECCIÓN CRÍTICA                       ==
-        // ==========================================================================
-        //  Como gemini-1.0-pro no soporta 'systemInstruction', inyectamos el prompt
-        //  como el primer mensaje del historial.
-        
-        // Creamos un historial para esta petición específica
-        const requestHistory = [
-            // Inyectamos el rol del usuario primero con el prompt
-            { role: "user", parts: [{ text: activePromptContent }] },
-            // Luego un rol de modelo indicando que ha entendido
-            { role: "model", parts: [{ text: "Entendido. Procedo." }] },
-            // Y finalmente el historial real de la conversación
-            ...formattedHistory
-        ];
+        sessionData.history.push({ role: 'user', content: userInput });
 
-        const chat = model.startChat({
-            history: requestHistory,
-            generationConfig: {
-                maxOutputTokens: 2048,
-                temperature: 0.75,
-            },
-            // El campo systemInstruction se elimina por completo.
+        while (sessionData.history.length > MAX_HISTORY_PAIRS * 2) {
+            sessionData.history.shift();
+        }
+        
+        const activePrompt = promptsCollection[personalityId] || promptsCollection['navaja'];
+        
+        const messagesPayload = [activePrompt, ...sessionData.history];
+
+        const chatCompletion = await groq.chat.completions.create({
+            messages: messagesPayload,
+            model: 'llama3-8b-8192',
+            temperature: 0.75,
+            stream: false
         });
 
-        const result = await chat.sendMessage(userInput);
-        const response = result.response;
-        const reply = response.text();
-        
-        // Actualizamos el historial REAL, sin el prompt inyectado.
-        sessionData.history.push({ role: 'user', content: userInput });
+        const reply = chatCompletion.choices[0]?.message?.content || "Se me cruzaron los cables. No sé qué decirte.";
         sessionData.history.push({ role: 'assistant', content: reply });
         
-        res.cookie('sessionId', sessionId, { maxAge: 24 * 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: 'None' });
+        res.cookie('sessionId', sessionId, { 
+            maxAge: 24 * 60 * 60 * 1000, 
+            httpOnly: true,
+            secure: true,
+            sameSite: 'None'
+        });
         res.json({ reply: reply });
 
     } catch (error) {
@@ -112,9 +109,9 @@ app.post('/chat', async (req, res) => {
 });
 
 app.get('/ping', (req, res) => {
-    res.status(200).send('Kairós v8.3 online. Núcleo Gemini Legacy compatible.');
+    res.status(200).send('Kairós v9.0 online. Fortaleza Groq restaurada.');
 });
 
 app.listen(port, () => {
-    console.log(`[SISTEMA] Kairós v8.3 escuchando en el puerto ${port}.`);
+    console.log(`[SISTEMA] Kairós v9.0 escuchando en el puerto ${port}.`);
 });
