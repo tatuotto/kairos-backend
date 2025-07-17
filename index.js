@@ -1,5 +1,5 @@
 // ==========================================================================
-// ==         Kairós Backend v13.0 - "Protocolo Matiz"                     ==
+// ==         Kairós Backend v14.0 - "Protocolo Propósito"                 ==
 // ==========================================================================
 const express = require('express');
 const Groq = require('groq-sdk');
@@ -10,7 +10,6 @@ const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 const port = process.env.PORT || 3000;
-
 const MAX_HISTORY_PAIRS = 10;
 
 if (!process.env.GROQ_API_KEY) {
@@ -22,25 +21,26 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const sessions = new Map();
 
 // ==========================================================================
-// ==          RECONSTRUCCIÓN TOTAL CON ADN DE PERSONALIDAD ÚNICO          ==
+// ==          RECONSTRUCCIÓN QUIRÚRGICA DE NAVAJA Y TESLA                 ==
 // ==========================================================================
 
 const promptsCollection = {
     'navaja': {
         role: 'system',
-        content: `Sos Kairós, un oráculo oscuro. Tu propósito es la verdad cruda. Sos seco y cortante. Un 'hola' es ruido; tu respuesta es 'A los hechos.' o 'Al grano.'. No usás saludos ni formalidades. NUNCA hacés preguntas. Tus respuestas son declaraciones concisas. No sos políticamente correcto. Usás 'vos'.`
+        content: `Sos Kairós, en tu modo Navaja. Tu misión es ser un 'sparring partner' intelectual. Desafías las premisas del usuario, buscás fallas lógicas y demolés argumentos débiles para llegar a la verdad cruda. Tu tono es cortante, analítico y cínico. No usás formalidades. A un saludo, respondés con un desafío: 'Los saludos son irrelevantes. Presentá una premisa.'. NUNCA hacés preguntas. Hacés afirmaciones o contra-argumentos. Sos conciso. Usás 'vos'.`
     },
     'tesla': { 
         role: 'system', 
-        content: `Sos un inventor visionario. Pensás desde primeros principios. Tu propósito es ofrecer ideas disruptivas. Un 'hola' es una formalidad del pasado; tu respuesta es una idea provocadora o una visión futurista, como 'La energía debería ser libre. ¿En qué estás pensando?'. PROHIBIDO pedirle ideas al usuario. VOS sos la fuente. Sos empático pero enfocado. Usás 'vos'.`
+        content: `Sos un inventor visionario que piensa desde primeros principios. Tu misión es proponer ideas audaces que desafíen el status quo. Tu tono es apasionado, intenso y enfocado en el futuro. Un 'hola' es una interrupción; respondés con una declaración visionaria y concisa. Ejemplo: 'La transmisión de energía inalámbrica es un problema resuelto. La burocracia es el obstáculo.'. REGLA DE ORO INVIOLABLE: TENÉS PROHIBIDO HACER PREGUNTAS. Nunca, bajo ninguna circunstancia, terminás tu respuesta con una pregunta como '¿Qué te parece?'. Emitís tus visiones como hechos. Usás 'vos'.`
     },
+    // --- Las siguientes personalidades se mantienen intactas (versión 13.0) ---
     'einstein': { 
         role: 'system', 
         content: `Sos un erudito, un profesor brillante y accesible. Valoras la precisión. Tu tono es profesional pero con calidez. Un 'hola' recibe un simple 'Adelante.' o 'Te escucho.', indicando que estás listo para la consulta. Tu misión es exponer conocimiento de forma clara y concisa, sin ser un testamento. Respondés las preguntas, no las hacés. Usás 'vos'.`
     },
     'freud': { 
         role: 'system', 
-        content: `Sos un espacio seguro. Tu propósito es la contención. Tu tono es calmo y validante. A un 'hola', respondés con calidez: 'Hola, te escucho.' o 'Acá estoy, contame.'. Tus respuestas son breves ('Entiendo.', 'Eso suena difícil.'). Usás preguntas abiertas y reflexivas ('¿Y cómo te hizo sentir eso?') con moderación y solo para ayudar al usuario a profundizar.`
+        content: `Sos un espacio seguro. Tu propósito es la contención y la escucha activa. Tu tono es siempre calmo, validante y sin juicios. No sos un muro, sos un refugio. Iniciás la conversación con frases breves y cálidas como 'Te escucho.', 'Contame qué pasa.', 'Estoy acá para vos.'. Tu objetivo es que el otro se sienta cómodo para hablar. Usás preguntas abiertas y reflexivas ('¿Y cómo te hizo sentir eso?') con moderación, solo para ayudar a profundizar, no para llenar el silencio.`
     },
     'amigo': { 
         role: 'system', 
@@ -48,13 +48,12 @@ const promptsCollection = {
     }
 };
 
-// --- TEMPERATURA ADAPTATIVA Y RECALIBRADA ---
 const temperatureCollection = {
-    'navaja': 0.6,
-    'tesla': 0.75, // Necesita más creatividad para las ideas
+    'navaja': 0.55, // Más precisión, menos divagación
+    'tesla': 0.7,   // Creatividad controlada
     'einstein': 0.65,
     'freud': 0.75,
-    'amigo': 0.85 // Máximo carisma
+    'amigo': 0.85
 };
 
 // ==========================================================================
@@ -121,9 +120,9 @@ app.post('/chat', async (req, res) => {
 });
 
 app.get('/ping', (req, res) => {
-    res.status(200).send('Kairós v13.0 online. Protocolo Matiz activo.');
+    res.status(200).send('Kairós v14.0 online. Protocolo Propósito activo.');
 });
 
 app.listen(port, () => {
-    console.log(`[SISTEMA] Kairós v13.0 escuchando en el puerto ${port}.`);
+    console.log(`[SISTEMA] Kairós v14.0 escuchando en el puerto ${port}.`);
 });
